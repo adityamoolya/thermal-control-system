@@ -16,51 +16,83 @@ This repository contains the Python-based engineering simulation and closed-loop
 
 ---
 
-## 2. Mathematical Foundation: Lumped-Capacitance Thermal Model
+## 2. Engineering Concepts & Physical Principles
 
-The system is modelled using the first-order lumped-capacitance energy balance:
+### The Lumped-Capacitance Assumption
+We model the water bath using the first-order **lumped-capacitance method**:
 
 $$m \cdot c_p \frac{dT}{dt} = P_{\text{heater}}(t) - UA (T(t) - T_{\text{ambient}})$$
 
-### Physical Parameters
+#### 1. Why "Lumped Capacitance"?
+In classical heat transfer, thermal conduction within a body and convection at its boundaries occur simultaneously. A distributed model would require solving the partial differential equation (PDE) for transient conduction:
+$$\rho c_p \frac{\partial T}{\partial t} = k \nabla^2 T$$
+
+The **lumped-capacitance approximation** simplifies this by treating the entire liquid volume as having a **spatially uniform temperature** $T(t)$ at any instant in time, reducing the system to an ordinary differential equation (ODE).
+
+*Physical Validity and Justification*:
+- This assumption is valid if internal thermal conduction/mixing is orders of magnitude faster than heat loss to the ambient environment. This is governed by the dimensionless **Biot number**:
+  $$\text{Bi} = \frac{h L_c}{k} < 0.1$$
+  Where $h$ is the convective heat transfer coefficient, $L_c = \frac{V}{A_{\text{surface}}}$ is the characteristic length, and $k$ is thermal conductivity.
+- In stagnant water, natural convection alone can create vertical temperature stratification (warmer water rising to the top). In a practical physical water bath, **continuous mechanical stirring or water circulation** is employed to enforce spatial uniformity, ensuring the lumped-capacitance model closely mirrors reality.
+
+---
+
+### Physical Meaning of System Parameters
+
+All calculations are maintained strictly in **SI units**:
 
 | Parameter | Symbol | SI Unit | Typical Baseline | Physical Significance |
 | :--- | :--- | :--- | :--- | :--- |
 | **Water Mass** | $m$ | $\text{kg}$ | $1.0\text{ to }2.0\text{ kg}$ | Fluid mass governing thermal inertia ($m = \rho \cdot V$). |
 | **Specific Heat Capacity** | $c_p$ | $\text{J}/(\text{kg}\cdot\text{K})$ | $\approx 4184\text{ J}/(\text{kg}\cdot\text{K})$ | Energy required to raise $1\text{ kg}$ of water by $1\text{ K}$. |
-| **Thermal Capacitance** | $C_{\text{th}} = m c_p$ | $\text{J}/\text{K}$ | $4184\text{ J}/\text{K}$ (at $1\text{ kg}$) | Resistance to rate of temperature change. |
-| **Overall Heat Loss Coefficient** | $UA$ | $\text{W}/\text{K}$ | $2.0\text{ to }10.0\text{ W}/\text{K}$ | Lumped convective/conductive/radiative heat loss rate. |
-| **Thermal Resistance** | $R_{\text{th}} = \frac{1}{UA}$| $\text{K}/\text{W}$ | Inverse of $UA$ | Thermal resistance between water and ambient air. |
-| **Thermal Time Constant** | $\tau = \frac{m c_p}{UA}$ | $\text{s}$ | $500\text{ to }2000\text{ s}$ | Characteristic response time of the first-order system. |
-| **Ambient Temperature** | $T_{\text{ambient}}$ | $\text{K}$ (or $^\circ\text{C}$) | $20\text{ to }25^\circ\text{C}$ | Temperature of surrounding environment. |
-| **Heater Power** | $P_{\text{heater}}$ | $\text{W}$ | $300\text{ to }1000\text{ W}$ | Thermal heat input rate delivered by the heating element. |
+| **Thermal Capacitance** | $C_{\text{th}} = m c_p$ | $\text{J}/\text{K}$ | $4184\text{ J}/\text{K}$ (at $1\text{ kg}$) | Overall capacity of the liquid body to store thermal energy. |
+| **Overall Heat Loss Coefficient** | $UA$ | $\text{W}/\text{K}$ | $2.0\text{ to }10.0\text{ W}/\text{K}$ | Lumped rate of conductive, convective, and radiative heat loss per Kelvin difference to ambient. |
+| **Thermal Resistance** | $R_{\text{th}} = \frac{1}{UA}$| $\text{K}/\text{W}$ | Inverse of $UA$ | Resistance opposing heat flow from the bath to the surroundings. |
+| **Thermal Time Constant** | $\tau = R_{\text{th}} C_{\text{th}} = \frac{m c_p}{UA}$ | $\text{s}$ | $500\text{ to }2000\text{ s}$ | Characteristic time for the system to respond to a step change in power. |
+| **Ambient Temperature** | $T_{\text{ambient}}$ | $\text{K}$ (or $^\circ\text{C}$) | $20\text{ to }25^\circ\text{C}$ | Boundary temperature of the surrounding air/room. |
+| **Heater Power** | $P_{\text{heater}}$ | $\text{W}$ | $300\text{ to }1000\text{ W}$ | Thermal heat input rate delivered into the liquid by the electric element. |
 
-### Analytical Solutions
+---
 
-Under constant heater power $P_{\text{heater}}$ and constant ambient temperature $T_{\text{ambient}}$:
+### Mathematical Derivation: Equilibrium & Transient Response
 
-- **Equilibrium (Steady-State) Temperature**:
-  $$T_{\text{equilibrium}} = T_{\text{ambient}} + \frac{P_{\text{heater}}}{UA}$$
+Rearranging the governing first-order linear differential equation into standard dynamic form:
+$$\frac{dT}{dt} + \frac{UA}{m c_p} T(t) = \frac{UA}{m c_p} T_{\text{ambient}} + \frac{P_{\text{heater}}}{m c_p}$$
 
-- **Transient Temperature Trajectory**:
-  $$T(t) = T_{\text{equilibrium}} + (T_0 - T_{\text{equilibrium}}) \cdot e^{-t / \tau}$$
+Substituting the thermal time constant $\tau = \frac{m c_p}{UA}$:
+$$\frac{dT}{dt} + \frac{1}{\tau} T(t) = \frac{1}{\tau} \left( T_{\text{ambient}} + \frac{P_{\text{heater}}}{UA} \right)$$
 
-### Engineering Assumptions & Limitations
-1. **Lumped-Capacitance Validity**: Assumes uniform water temperature ($\nabla T \approx 0$). In physical systems, this requires adequate convective mixing or a circulation stirrer ($\text{Bi} = \frac{h L_c}{k} < 0.1$).
-2. **Container Thermal Mass**: The thermal capacitance of the vessel walls and heater element casing is initially neglected.
-3. **Evaporation Losses**: Surface mass transfer and evaporative latent heat loss are neglected at lower temperatures, but become significant above 60°C.
-4. **Constant Properties**: Fluid density $\rho$, specific heat $c_p$, and heat loss coefficient $UA$ are assumed constant over the operating range.
+#### 1. Steady-State Equilibrium Temperature ($T_{\text{equilibrium}}$)
+At thermal equilibrium, the temperature ceases to change ($\frac{dT}{dt} = 0$). The rate of electrical heat supplied equals the rate of heat lost to the environment:
+$$P_{\text{heater}} = UA (T_{\text{equilibrium}} - T_{\text{ambient}})$$
+$$T_{\text{equilibrium}} = T_{\text{ambient}} + \frac{P_{\text{heater}}}{UA}$$
+
+#### 2. Exact Analytical Transient Solution
+Using the integrating factor $\mu(t) = e^{t/\tau}$, the closed-form exact solution for constant $P_{\text{heater}}$ and $T_{\text{ambient}}$ with initial temperature $T(0) = T_0$ is:
+$$T(t) = T_{\text{equilibrium}} + (T_0 - T_{\text{equilibrium}}) \cdot e^{-t / \tau}$$
+
+**Significance for Verification**:
+Because this exact closed-form analytical equation exists for constant inputs, we can benchmark numerical solvers (`scipy.integrate.solve_ivp`) directly against analytical truth to verify integration tolerance and energy conservation before introducing complex non-linear controllers.
+
+---
+
+### Engineering Assumptions & Model Limitations
+1. **Lumped Capacitance**: Assumes zero spatial temperature gradients ($\nabla T \approx 0$). Physically requires a circulation pump or stirrer.
+2. **Container Thermal Mass**: The thermal mass of the container walls, insulation, and the heating element jacket is neglected in this initial model.
+3. **Evaporative Cooling**: At temperatures approaching 60°C–90°C, surface evaporation becomes an increasingly significant non-linear heat loss mechanism ($q_{\text{evap}} = \dot{m}_{\text{evap}} \cdot h_{fg}$). This is initially omitted in the linear $UA$ model and will be evaluated during disturbance analysis.
+4. **Constant Thermophysical Properties**: Density ($\rho$), specific heat capacity ($c_p$), and heat transfer coefficient ($UA$) are treated as constant over the operating range.
+5. **Actuator Idealisation**: In the initial model, heater power is assumed to be instantaneously delivered without internal thermal lag of the heating coil.
 
 ---
 
 ## 3. Project Architecture
 
-The project follows a modular structure separating physical models, actuator dynamics, controllers, and evaluation metrics:
+The codebase follows a modular structure separating physical models, actuator dynamics, controllers, simulation runners, and performance metrics:
 
 ```text
 ASI/
 ├── pyproject.toml               # Project metadata & dependencies
-├── README.md                    # Project documentation & engineering plan
+├── README.md                    # Project documentation & engineering explanations
 ├── src/
 │   └── water_bath/
 │       ├── __init__.py
@@ -90,24 +122,24 @@ ASI/
 
 ## 4. Staged Development Workflow
 
-- [x] **Stage 0: Repository Inspection and Project Planning** (Current)
-  - Inspect repository structure, Python runtime, Git status, and toolchain.
-  - Define physical equations, unit conventions, and project architecture.
+- [x] **Stage 0: Repository Inspection and Project Planning** (Completed)
+  - Inspected repository structure, toolchain, Python 3.14 runtime, and Git environment.
+  - Documented physical equations, unit conventions, analytical derivations, and system architecture.
 - [ ] **Stage 1: Open-Loop Thermal Modelling**
   - Implement continuous-time thermal ODE using `scipy.integrate.solve_ivp`.
-  - Simulate heating and passive cooling trajectories.
-  - Verify numerical simulation against closed-form analytical solutions.
+  - Simulate open-loop heating and passive cooling trajectories.
+  - Compare numerical results against closed-form analytical solutions to quantify solver residual error.
 - [ ] **Stage 2: Model Validation and Testing**
-  - Implement comprehensive Pytest suite for energy conservation, equilibrium verification, and parameter sensitivity.
+  - Pytest automated test suite for energy conservation, equilibrium verification, and parameter sensitivity.
 - [ ] **Stage 3: Heater Modelling**
-  - Implement separate actuator model with maximum power rating, saturation, and duty-cycle control.
+  - Actuator sub-model with power saturation ($0 \le P \le P_{\max}$), quantization, and switching logic.
 - [ ] **Stage 4: ON/OFF Temperature Controller**
-  - Implement hysteresis-based bang-bang controller and analyse steady-state limit cycle oscillations.
+  - Hysteresis-based bang-bang controller and analysis of limit-cycle switching oscillations.
 - [ ] **Stage 5: PID Controller**
-  - Implement discrete-time PID controller with integral anti-windup clamping and derivative low-pass filtering.
+  - Discrete-time PID controller with anti-windup clamping and low-pass derivative filtering.
 - [ ] **Stage 6: PID Tuning and Performance Analysis**
-  - Systematic tuning (e.g., Cohen-Coon / Ziegler-Nichols step response method) and transient metric quantification (rise time, settling time, overshoot, IAE, ISE).
+  - Systematic tuning methods and transient performance metrics (rise time, settling time, overshoot, IAE, ISE).
 - [ ] **Stage 7: Controller Comparison and Disturbance Testing**
-  - Benchmark ON/OFF vs PID under setpoint changes, ambient shifts, and thermal shock disturbances.
+  - Side-by-side benchmark of ON/OFF vs PID under setpoint transitions, ambient fluctuations, and cold-water disturbances.
 - [ ] **Stage 8: Final Results and College Project Documentation**
-  - Produce publication-ready comparison charts, CSV export summaries, and hardware transition guide for Part B.
+  - Production of publication-quality comparative plots, CSV data exports, and preparation for Part B microcontroller implementation.
